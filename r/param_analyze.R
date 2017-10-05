@@ -71,7 +71,13 @@ get_chisquares <- function(ref_idx=-1) {
             sums <- sums + vals
         }
     }
-    return (((peaks - 74.1)^2 / 74.1) + sums)
+    if (ref_idx == -1) {
+        ref_peak <- 74.1
+    }
+    else {
+        ref_peak <- peaks[ref_idx]
+    }
+    return (((peaks - ref_peak)^2 / ref_peak) + sums)
 }
 
 chisquares <- get_chisquares()
