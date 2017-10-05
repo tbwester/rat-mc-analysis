@@ -4,9 +4,9 @@ require("rjson")
 processFile <- function(filepath) {
     lines <- c()
     con = file(filepath, "r")
-    while ( TRUE ) {
+    while (TRUE) {
         line = readLines(con, n = 1)
-        if ( length(line) == 0 ) {
+        if (length(line) == 0) {
             break
         }
         lines <- c(lines, line)
@@ -34,68 +34,66 @@ hits <-  unlist(lapply(runpeaks[,3], function(x) as.numeric(x)))
 ## select jsons with corresponding run number
 jsons <- jsons[(runs[1]+1):(runs[length(runs)]+1)]
 
-## get a parameter from the json, plot peak position vs parameter to look for trends
-sums <- numeric(length(jsons))
-for (i in 1:length(jsons[[1]])) {
-    for (j in 1:length(unlist(jsons[[1]][i]))) {
-        vals <- unlist(lapply(jsons, function(x) as.numeric(unlist(x[i])[j])))
-        val_mean <- as.numeric(unlist(central_jsons[[1]][i])[j])
-        val_sig <- as.numeric(unlist(central_jsons[[2]][i])[j])
-        
-        tempval <- vals[1]
-        if (is.na(val_sig)) {
-            vals <- numeric(length(jsons))
+## compute global chisquare
+get_chisquares <- function(ref_idx=-1) {
+    # sum of parameter deviations
+    sums <- numeric(length(jsons))
+    
+    # loop over each category/each parameter in the json struct
+    for (i in 1:length(jsons[[1]])) {
+        for (j in 1:length(unlist(jsons[[1]][i]))) {
+            
+            # unpack json to get the given parameter for all runs
+            vals <- unlist(lapply(jsons, function(x) as.numeric(unlist(x[i])[j])))
+            
+            # compare against central value by default, otherwise compare against specific run
+            if (ref_idx == -1) {
+                val_mean <- as.numeric(unlist(central_jsons[[1]][i])[j])
+            }
+            else {
+                val_mean <- as.numeric(unlist(jsons[[ref_idx]][i])[j])
+            }
+            val_sig <- as.numeric(unlist(central_jsons[[2]][i])[j])
+            
+            tempval <- vals[1]  # variable for printing
+            
+            # remove dummy parameters needed for sim that have no variance
+            if (is.na(val_sig)) {
+                vals <- numeric(length(jsons))
+            }
+            else {
+                vals <- unlist(lapply(vals, function(x) (x-val_mean)^2 / val_sig^2 ))
+            }
+            
+            # check for reasonable output
+            print(c(tempval, val_mean, val_sig, vals[1]))
+            
+            sums <- sums + vals
         }
-        else {
-            vals <- unlist(lapply(vals, function(x) (x-val_mean)^2 / val_sig^2 ))
-        }
-        print(c(tempval, val_mean, val_sig, vals[1]))
-        
-        sums <- sums + vals
-        #print(fit$coefficients[2])
     }
+    return (((peaks - 74.1)^2 / 74.1) + sums)
 }
-print(sums)
-chisquares <- ((peaks - 74.1)^2 / 74.1) + sums
+
+chisquares <- get_chisquares()
 gqe <- peaks / hits
 plot(chisquares~gqe)
 
-# confidence interval
+## confidence interval
 min_chsq <- min(chisquares)
 min_chsq_idx <- which.min(chisquares)
 
-sums <- numeric(length(jsons))
-for (i in 1:length(jsons[[1]])) {
-    for (j in 1:length(unlist(jsons[[1]][i]))) {
-        vals <- unlist(lapply(jsons, function(x) as.numeric(unlist(x[i])[j])))
-        val_mean <- as.numeric(unlist(jsons[[min_chsq_idx]][i])[j])
-        val_sig <- as.numeric(unlist(central_jsons[[2]][i])[j])
-        
-        tempval <- vals[234]
-        if (is.na(val_sig)) {
-            vals <- numeric(length(jsons))
-        }
-        else {
-            vals <- unlist(lapply(vals, function(x) (x-val_mean)^2 / val_sig^2 ))
-        }
-        print(c(tempval, val_mean, val_sig, vals[234]))
-        
-        sums <- sums + vals
-        #print(fit$coefficients[2])
-    }
-}
-
-chisquares <- ((peaks - peaks[min_chsq_idx])^2 / peaks[min_chsq_idx]) + sums
+chisquares <- get_chisquares(min_chsq_idx) # now we give it a reference run
 gqes <- peaks / hits
 plot(chisquares~gqes)
 
-cutoff <- qchisq(0.95, df=length(unlist(jsons[[1]])) - 1) # one dummy parameter in jsons
+cutoff <- qchisq(0.68, df=length(unlist(jsons[[1]])) - 1) # one dummy parameter in jsons
 gqes_cut <- gqes[which(chisquares < cutoff)]
 ci <- c(min(gqes_cut), max(gqes_cut))
 print(length(gqes_cut))
 hist(gqes_cut)
 print(ci)
 
+## ci plot vs. cutoff
 lowers <- c()
 uppers <- c()
 for (i in 1:1000) {
