@@ -51,7 +51,7 @@ void peakfit(string runfile) {
         h->SetStats(kFALSE);
         //h->SetLineColor(gStyle->GetColorPalette(((peak - 40.) / 70.) * 1000));
         h->GetXaxis()->SetRangeUser(0., 150.);
-        h->GetYaxis()->SetRangeUser(0., 65000.);
+        h->GetYaxis()->SetRangeUser(0., 75000.);
         runCounter == 0 ? h->Draw("hist") : h->Draw("hists same");
         hlist.push_back(h);
 

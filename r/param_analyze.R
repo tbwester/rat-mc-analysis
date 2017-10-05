@@ -108,6 +108,11 @@ for (i in 1:1000) {
     lowers <- c(lowers, min(gqes_cut))
     uppers <- c(uppers, max(gqes_cut))
 }
+layout(matrix(c(2,1),ncol=1), heights=c(3,2))
 ilist <- (1:1000) / 1000
-plot(lowers~ilist, type="l", col="blue", ylim=c(0.003, 0.013), ylab="CI", xlab="Level")
-lines(uppers~ilist, col="red")
+plot((uppers - lowers)~ilist, col="black", type="l", ylim=c(0.0, 0.013), ylab="CI Width", xlab="Level", lty=1)
+grid()
+plot(lowers~ilist, type="l", col="blue", ylim=c(0.0, 0.013), ylab="CI", xlab="", lty=1)
+lines(uppers~ilist, col="red", lty=1)
+grid()
+legend("bottomleft", legend=c("Upper Limit", "Lower Limit"), col=c("red", "blue"), lty=c(1,1))
