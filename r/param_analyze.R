@@ -34,50 +34,50 @@ hits <-  unlist(lapply(runpeaks[,3], function(x) as.numeric(x)))
 ## select jsons with corresponding run number
 jsons <- jsons[runs+1]
 
+rundata <- data.frame(runs, peaks, hits)
+centraldata <- df <- data.frame(matrix(nrow = 2))
+
+## separate json into column vectors
+cnames <- c("runs", "peaks", "hits")
+for (i in 1:length(jsons[[1]])) {
+    for (j in 1:length(unlist(jsons[[1]][i]))) {
+        
+        # unpack json to get the given parameter for all runs
+        vals <- unlist(lapply(jsons, function(x) as.numeric(unlist(x[i])[j])))
+        
+        val_mean <- as.numeric(unlist(central_jsons[[1]][i])[j])
+        val_sig <- as.numeric(unlist(central_jsons[[2]][i])[j])
+        
+        paramname <- names(unlist(jsons[[1]][i])[j])
+        if (paramname == "geo.glassthick2") {
+            next
+        }
+        else {
+            centraldata <- cbind(centraldata, matrix(c(val_mean, val_sig)))
+            cnames <- c(cnames, paramname)
+            rundata <- cbind(rundata, vals)
+        }
+    }
+}
+
+## complete the data frames
+colnames(rundata) <- cnames
+colnames(centraldata) <- cnames[3:length(cnames)]
+centraldata <- centraldata[-1]
+
 ## compute global chisquare
 get_chisquares <- function(ref_idx=-1) {
     # sum of parameter deviations
-    sums <- numeric(length(jsons))
-    
-    # loop over each category/each parameter in the json struct
-    for (i in 1:length(jsons[[1]])) {
-        for (j in 1:length(unlist(jsons[[1]][i]))) {
-            
-            # unpack json to get the given parameter for all runs
-            vals <- unlist(lapply(jsons, function(x) as.numeric(unlist(x[i])[j])))
-            
-            # compare against central value by default, otherwise compare against specific run
-            if (ref_idx == -1) {
-                val_mean <- as.numeric(unlist(central_jsons[[1]][i])[j])
-            }
-            else {
-                val_mean <- as.numeric(unlist(jsons[[ref_idx]][i])[j])
-            }
-            val_sig <- as.numeric(unlist(central_jsons[[2]][i])[j])
-            
-            tempval <- vals[1]  # variable for printing
-            
-            # remove dummy parameters needed for sim that have no variance
-            if (is.na(val_sig)) {
-                vals <- numeric(length(jsons))
-            }
-            else {
-                vals <- unlist(lapply(vals, function(x) (x-val_mean)^2 / val_sig^2 ))
-            }
-            
-            # check for reasonable output
-            print(c(tempval, val_mean, val_sig, vals[1]))
-            
-            sums <- sums + vals
-        }
-    }
     if (ref_idx == -1) {
         ref_peak <- 74.1
+        param_chisquares <- apply(rundata[,-(1:3)], 1, function(x) sum((x - centraldata[1,])^2/centraldata[2,]^2))
     }
     else {
         ref_peak <- peaks[ref_idx]
+        param_chisquares <- apply(rundata[,-(1:3)], 1, function(x) sum((x - rundata[ref_idx,-(1:3)])^2/centraldata[2,]^2))
     }
-    return (((peaks - ref_peak)^2 / ref_peak) + sums)
+    
+    return (((peaks - ref_peak)^2 / ref_peak) + param_chisquares)
 }
 
 chisquares <- get_chisquares()
@@ -95,7 +95,7 @@ plot(chisquares~gqes)
 cutoff <- qchisq(0.68, df=length(unlist(jsons[[1]])) - 1) # one dummy parameter in jsons
 gqes_cut <- gqes[which(chisquares < cutoff)]
 ci <- c(min(gqes_cut), max(gqes_cut))
-print(length(gqes_cut))
+#print(length(gqes_cut))
 hist(gqes_cut)
 print(ci)
 

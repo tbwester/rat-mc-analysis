@@ -13,3 +13,5 @@ done
 root -l 'peakfit.cc("filelist.txt")'
 
 rm filelist.txt
+
+Rscript r/param_analyze.R

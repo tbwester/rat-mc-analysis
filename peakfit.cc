@@ -18,7 +18,7 @@ void peakfit(string runfile) {
     std::ifstream runs(runfile);
     std::string line;
 
-    std::ofstream datafile("r/peaks.txt");
+    std::ofstream datafile("peaks.txt");
     std::stringstream outstream;
 
     TCanvas* c1 = new TCanvas("c1", "PE Spectra", 10, 10, 1000, 800);
