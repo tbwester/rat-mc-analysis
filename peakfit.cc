@@ -18,6 +18,9 @@ void peakfit(string runfile) {
     std::ifstream runs(runfile);
     std::string line;
 
+    std::ofstream datafile("r/peaks.txt");
+    std::stringstream outstream;
+
     TCanvas* c1 = new TCanvas("c1", "PE Spectra", 10, 10, 1000, 800);
 
     c1->Divide(2,2,0.002,0.002);
@@ -26,7 +29,7 @@ void peakfit(string runfile) {
     TH1F* hhits = new TH1F("hhits", "Plate Hit Distribution;Hits;Counts", 100, 4000, 14000);
     TH2F* hgqe = new TH2F("hgqe", ";Peak Position (PE);Plate Hits", 100, 20, 110, 100, 4000, 14000);
     hgqe->SetStats(kFALSE);
-    //TH1F* hgqe = new TH1F("hgqe", "GQE Distribution;GQE;Counts", 100, 0, 0.02);
+
     std::vector<double> x, y, ytemp, gqes;
     std::vector<TH1F *> hlist;
 
@@ -47,29 +50,37 @@ void peakfit(string runfile) {
         fitfunc->SetParameter(2, 100);
 
         h->Fit("fitfunc", "RBQ0");
+        
+        // Drawing
         h->UseCurrentStyle(); // overwrite style from file
         h->SetStats(kFALSE);
-        //h->SetLineColor(gStyle->GetColorPalette(((peak - 40.) / 70.) * 1000));
+        
         h->GetXaxis()->SetRangeUser(0., 150.);
         h->GetYaxis()->SetRangeUser(0., 75000.);
         runCounter == 0 ? h->Draw("hist") : h->Draw("hists same");
-        hlist.push_back(h);
-
+        
+        // Data
         double fitpeak = fitfunc->GetParameter(1);
+        double hitmean = hhit->GetMean();
         hpeaks->Fill(fitpeak);
-        gqes.push_back(fitpeak / hhit->GetMean());
-        hhits->Fill(hhit->GetMean());
-        //hgqe->Fill(fitpeak / hhit->GetMean());
-        hgqe->Fill(fitpeak, hhit->GetMean());
-        std::cout << line << "\t" 
+        gqes.push_back(fitpeak / hitmean);
+
+        hhits->Fill(hitmean);
+        hgqe->Fill(fitpeak, hitmean);
+
+        outstream << line << "\t" 
                   << fitpeak << "\t"
-                  << hhit->GetMean() 
-                  << std::endl;//" +/- " << fitfunc->GetParError(1) << std::endl;
+                  << hitmean 
+                  << std::endl;
+
         x.push_back(fitpeak);
         ytemp.push_back(fitpeak - 74.1);
-        //f->Close();
+
+        hlist.push_back(h);        
         runCounter++;
     }
+
+    datafile << outstream.str() << std::endl;
 
     // Color histograms
     double minpeak = *std::min_element(x.begin(), x.end());

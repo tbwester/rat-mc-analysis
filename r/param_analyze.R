@@ -24,7 +24,7 @@ central_jsons <- lapply(central_json_strings, function(x) fromJSON(json_str=x))
 
 ## get peaks and run numbers
 run_strings <- processFile("peaks.txt")
-temp <- unlist(lapply(run_strings, function(x) strsplit(x, " ")))
+temp <- unlist(lapply(run_strings, function(x) strsplit(x, "\t")))
 temp <- temp[which(temp != "")] # remove empty strings???
 runpeaks <- matrix(temp, ncol=3, byrow = TRUE)
 runs <- unlist(lapply(runpeaks[,1], function(x) as.numeric(gsub("[^\\d]+", "", x, perl=TRUE))))
@@ -32,7 +32,7 @@ peaks <- unlist(lapply(runpeaks[,2], function(x) as.numeric(x)))
 hits <-  unlist(lapply(runpeaks[,3], function(x) as.numeric(x)))
 
 ## select jsons with corresponding run number
-jsons <- jsons[(runs[1]+1):(runs[length(runs)]+1)]
+jsons <- jsons[runs+1]
 
 ## compute global chisquare
 get_chisquares <- function(ref_idx=-1) {
@@ -108,11 +108,14 @@ for (i in 1:1000) {
     lowers <- c(lowers, min(gqes_cut))
     uppers <- c(uppers, max(gqes_cut))
 }
-layout(matrix(c(2,1),ncol=1), heights=c(3,2))
+
+## plots
+par(mai=c(1,0.9,0.2,0.2))
+layout(matrix(c(2,1),ncol=1), heights=c(7,5))
 ilist <- (1:1000) / 1000
 plot((uppers - lowers)~ilist, col="black", type="l", ylim=c(0.0, 0.013), ylab="CI Width", xlab="Level", lty=1)
 grid()
-plot(lowers~ilist, type="l", col="blue", ylim=c(0.0, 0.013), ylab="CI", xlab="", lty=1)
+plot(lowers~ilist, type="l", col="blue", ylim=c(0.0, 0.013), ylab="CI [GQE]", xlab="", lty=1)
 lines(uppers~ilist, col="red", lty=1)
 grid()
 legend("bottomleft", legend=c("Upper Limit", "Lower Limit"), col=c("red", "blue"), lty=c(1,1))
