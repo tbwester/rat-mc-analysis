@@ -25,9 +25,9 @@ void peakfit(string runfile) {
 
     c1->Divide(2,2,0.002,0.002);
     c1->cd(1);
-    TH1F* hpeaks = new TH1F("hpeaks", "Peak Distribution;PE Peak;Counts", 100, 20, 110);
+    TH1F* hpeaks = new TH1F("hpeaks", "Peak Distribution;PE Peak;Counts", 60, 20, 110);
     TH1F* hhits = new TH1F("hhits", "Plate Hit Distribution;Hits;Counts", 100, 4000, 14000);
-    TH2F* hgqe = new TH2F("hgqe", ";Peak Position (PE);Plate Hits", 100, 20, 110, 100, 4000, 14000);
+    TH2F* hgqe = new TH2F("hgqe", ";Peak Position (PE);Plate Hits", 60, 20, 110, 60, 4000, 14000);
     hgqe->SetStats(kFALSE);
 
     std::vector<double> x, y, ytemp, gqes;
@@ -44,7 +44,7 @@ void peakfit(string runfile) {
         int binmax = h->GetMaximumBin();
         double peak = h->GetXaxis()->GetBinCenter(binmax);
 
-        TF1* fitfunc = new TF1("fitfunc", "gaus(0)", peak - 5., peak + 7.);
+        TF1* fitfunc = new TF1("fitfunc", "gaus(0)", peak - 6., peak + 7.);
         fitfunc->SetParameter(0, 1000);
         fitfunc->SetParameter(1, peak);
         fitfunc->SetParameter(2, 100);
@@ -76,7 +76,8 @@ void peakfit(string runfile) {
         x.push_back(fitpeak);
         ytemp.push_back(fitpeak - 74.1);
 
-        hlist.push_back(h);        
+        hlist.push_back(h); 
+        //f->Close();       
         runCounter++;
     }
 

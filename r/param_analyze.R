@@ -1,4 +1,6 @@
 require("rjson")
+require("HistogramTools")
+require("weights")
 
 ## Reads lines from file
 processFile <- function(filepath) {
@@ -66,56 +68,75 @@ colnames(centraldata) <- cnames[3:length(cnames)]
 centraldata <- centraldata[-1]
 
 ## compute global chisquare
-get_chisquares <- function(ref_idx=-1) {
-    # sum of parameter deviations
-    if (ref_idx == -1) {
-        ref_peak <- 74.1
-        param_chisquares <- apply(rundata[,-(1:3)], 1, function(x) sum((x - centraldata[1,])^2/centraldata[2,]^2))
+get_chisquares <- function(ref_peak=74.1, ref_run=-1) {
+    ## param 6,22 not implemented
+    skip = c(6,22)
+    
+    if (is.null(skip))  {
+        ref_base <- centraldata[2,]
+        ref_params <- centraldata[1,]
     }
     else {
-        ref_peak <- peaks[ref_idx]
-        param_chisquares <- apply(rundata[,-(1:3)], 1, function(x) sum((x - rundata[ref_idx,-(1:3)])^2/centraldata[2,]^2))
+        ref_base <- centraldata[2,-(skip-3)]
+        ref_params <- centraldata[1,-(skip-3)]
     }
     
-    return (((peaks - ref_peak)^2 / ref_peak) + param_chisquares)
+    if (ref_run != -1) {
+        param_chisquares <- sum((rundata[ref_run, -c(1:3, skip)] - ref_params)^2/ref_base^2)
+        return (((peaks[ref_run] - ref_peak)^2 / ref_peak) + param_chisquares)
+    }
+    else {
+        param_chisquares <- apply(rundata[,-c(1:3, skip)], 1, function(x) sum((x - ref_params)^2/ref_base^2))
+        return (((peaks-ref_peak)^2 / ref_peak) + param_chisquares)
+    }
 }
 
-chisquares <- get_chisquares()
-gqe <- peaks / hits
-plot(chisquares~gqe)
-
-## confidence interval
-min_chsq <- min(chisquares)
-min_chsq_idx <- which.min(chisquares)
-
-chisquares <- get_chisquares(min_chsq_idx) # now we give it a reference run
+#data_peaks = rnorm(100, mean=74.1, sd=0.2*74.1)
+#data_peaks = 74.1
 gqes <- peaks / hits
-plot(chisquares~gqes)
-
-cutoff <- qchisq(0.68, df=length(unlist(jsons[[1]])) - 1) # one dummy parameter in jsons
-gqes_cut <- gqes[which(chisquares < cutoff)]
-ci <- c(min(gqes_cut), max(gqes_cut))
-#print(length(gqes_cut))
-hist(gqes_cut)
-print(ci)
-
-## ci plot vs. cutoff
-lowers <- c()
-uppers <- c()
-for (i in 1:1000) {
-    cutoff <- qchisq(i / 1000, df=length(unlist(jsons[[1]])) - 1) # one dummy parameter in jsons
-    gqes_cut <- gqes[which(chisquares < cutoff)]
-    lowers <- c(lowers, min(gqes_cut))
-    uppers <- c(uppers, max(gqes_cut))
+gqe_list <- c()
+prob_list <- c()
+for (i in 1:length(rundata[,1])) {
+    data_peak <- rnorm(1, mean = 74.1, sd = 0.2*74.1)
+    chisquares <- get_chisquares(data_peak, i)
+    probs = exp(-0.5*chisquares)
+    gqe_list <- c(gqe_list, gqes[i])
+    prob_list <- c(prob_list, probs)
 }
 
-## plots
-par(mai=c(1,0.9,0.2,0.2))
-layout(matrix(c(2,1),ncol=1), heights=c(7,5))
-ilist <- (1:1000) / 1000
-plot((uppers - lowers)~ilist, col="black", type="l", ylim=c(0.0, 0.013), ylab="CI Width", xlab="Level", lty=1)
-grid()
-plot(lowers~ilist, type="l", col="blue", ylim=c(0.0, 0.013), ylab="CI [GQE]", xlab="", lty=1)
-lines(uppers~ilist, col="red", lty=1)
-grid()
-legend("bottomleft", legend=c("Upper Limit", "Lower Limit"), col=c("red", "blue"), lty=c(1,1))
+## ecdf
+par(mfrow=c(1,1))
+h <- wtd.hist(x=gqe_list, weight=prob_list, breaks=40)
+ec <- HistToEcdf(h)
+
+ecx <- knots(ec)
+ecy <- ec(knots(ec))
+
+fit <- smooth.spline(ecx, y = ecy, spar=0.5)
+plot(ecy~ecx, xlab="GQE", ylab="ECDF")
+lines(fit)
+
+pred <- predict(fit)
+draw_ci <- function(sign, dashed=FALSE, col="Red") {
+    ci_lower <- approxfun(x=pred$y, y=pred$x)((1-sign)/2) 
+    ci_upper <- approxfun(x=pred$y, y=pred$x)(1-(1-sign)/2) 
+    med <- approxfun(x=pred$y, y=pred$x)(0.5)
+    ci_bayes <- c(ci_lower, ci_upper)
+    signs <- c((1-sign)/2, 1-(1-sign)/2)
+    print(ci_bayes)
+    print( c( abs(med-ci_bayes[1])/med, abs(med-ci_bayes[2])/med ) )
+    points(signs~ci_bayes, col=col)
+    if (dashed) {
+        abline(v=ci_bayes[1], col=col, lty=2)
+        abline(v=ci_bayes[2], col=col, lty=2)        
+    }
+    else {
+        abline(v=ci_bayes[1], col=col)
+        abline(v=ci_bayes[2], col=col)
+    }
+
+}
+draw_ci(0.68)
+draw_ci(0.95, TRUE)
+draw_ci(0.99, TRUE, "Blue")
+legend("topleft",legend=c("68%", "95%", "99%"),col=c("Red", "Red", "Blue"), lty=c(1,2,2))
