@@ -25,10 +25,12 @@ void peakfit(string runfile) {
 
     c1->Divide(2,2,0.002,0.002);
     c1->cd(1);
-    TH1F* hpeaks = new TH1F("hpeaks", "Peak Distribution;PE Peak;Counts", 60, 20, 110);
+    TH1F* hpeaks = new TH1F("hpeaks", "Peak Distribution;PE Peak;Counts", 60, 20, 120);
     TH1F* hhits = new TH1F("hhits", "Plate Hit Distribution;Hits;Counts", 100, 4000, 14000);
-    TH2F* hgqe = new TH2F("hgqe", ";Peak Position (PE);Plate Hits", 60, 20, 110, 60, 4000, 14000);
+    TH2F* hgqe = new TH2F("hgqe", ";Peak Position (PE);Plate Hits", 60, 20, 120, 60, 4000, 14000);
+    TH2F* hgqe2 = new TH2F("hgqe2", ";Peak Position (PE);GQE", 60, 20, 120, 60, 0.002, 0.015);
     hgqe->SetStats(kFALSE);
+    hgqe2->SetStats(kFALSE);
 
     std::vector<double> x, y, ytemp, gqes;
     std::vector<TH1F *> hlist;
@@ -65,6 +67,8 @@ void peakfit(string runfile) {
         hpeaks->Fill(fitpeak);
         gqes.push_back(fitpeak / hitmean);
 
+        hgqe2->Fill(fitpeak, fitpeak / hitmean);
+
         hhits->Fill(hitmean);
         hgqe->Fill(fitpeak, hitmean);
 
@@ -97,6 +101,7 @@ void peakfit(string runfile) {
 
     // Graph
     c1->cd(3);
+    hgqe2->Draw("colz");
 #if 0
     std::sort(x.begin(), x.end());
     std::sort(ytemp.begin(), ytemp.end());
@@ -109,11 +114,11 @@ void peakfit(string runfile) {
     gr->GetYaxis()->SetRangeUser(-2., 20.);
     gr->Draw();
 #else
-    TGraph* gr = new TGraph(runCounter, &x[0], &gqes[0]); 
-    gr->SetTitle(";Peak Position;GQE");
-    gr->SetMarkerStyle(20);
-    gr->SetMarkerSize(0.6);
-    gr->Draw("AP");
+    //TGraph* gr = new TGraph(runCounter, &x[0], &gqes[0]); 
+    //gr->SetTitle(";Peak Position;GQE");
+    //gr->SetMarkerStyle(20);
+    //gr->SetMarkerSize(0.6);
+    //gr->Draw("AP");
 #endif
 
     // Hits vs. peak 2d hist

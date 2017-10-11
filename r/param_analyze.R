@@ -105,7 +105,7 @@ for (i in 1:length(rundata[,1])) {
 }
 
 ## ecdf
-par(mfrow=c(1,1))
+par(mfrow=c(1,1), pch=20)
 h <- wtd.hist(x=gqe_list, weight=prob_list, breaks=40)
 ec <- HistToEcdf(h)
 
@@ -139,4 +139,5 @@ draw_ci <- function(sign, dashed=FALSE, col="Red") {
 draw_ci(0.68)
 draw_ci(0.95, TRUE)
 draw_ci(0.99, TRUE, "Blue")
-legend("topleft",legend=c("68%", "95%", "99%"),col=c("Red", "Red", "Blue"), lty=c(1,2,2))
+legend("topleft",legend=c("Fit", "Percentiles", "68%", "95%", "99%"),
+       col=c("Black","Black", "Red", "Red", "Blue"), lty=c(1,0,1,2,2), pch=c(-1,20,-1,-1,-1))
