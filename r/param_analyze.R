@@ -96,48 +96,62 @@ get_chisquares <- function(ref_peak=74.1, ref_run=-1) {
 gqes <- peaks / hits
 gqe_list <- c()
 prob_list <- c()
-for (i in 1:length(rundata[,1])) {
-    data_peak <- rnorm(1, mean = 74.1, sd = 0.2*74.1)
-    chisquares <- get_chisquares(data_peak, i)
-    probs = exp(-0.5*chisquares)
-    gqe_list <- c(gqe_list, gqes[i])
-    prob_list <- c(prob_list, probs)
+for (j in 1:10) {
+    for (i in 1:length(rundata[,1])) {
+        data_peak <- rnorm(1, mean = 60.82, sd = 0.016*60.82)
+        chisquares <- get_chisquares(data_peak, i)
+        probs = exp(-0.5*chisquares)
+        gqe_list <- c(gqe_list, gqes[i])
+        prob_list <- c(prob_list, probs)
+    }
+    print(j)
 }
-
 ## ecdf
-par(mfrow=c(1,1), pch=20)
-h <- wtd.hist(x=gqe_list, weight=prob_list, breaks=40)
+par(mar = c(5,5,2,5), pch=20)
+#par(mfrow=c(1,1), pch=20)
+h <- wtd.hist(x=gqe_list, weight=prob_list, breaks=40, main=NA, xlab="GQE", ylab="Weighted Counts (arb.)", freq=TRUE,
+              cex.lab=1.5, cex.axis=1.5, cex.sub=1.5)
 ec <- HistToEcdf(h)
 
 ecx <- knots(ec)
 ecy <- ec(knots(ec))
 
 fit <- smooth.spline(ecx, y = ecy, spar=0.5)
-plot(ecy~ecx, xlab="GQE", ylab="ECDF")
-lines(fit)
+
+par(new = T)
+plot(fit, xlab=NA, ylab=NA, axes=F, col="Red", type="l", lwd=1)
+points(ecy~ecx, col="Red")
+
+#lines(fit, axes=F, col="Red")
+
+axis(4, at=seq(from = 0, to = 1, length.out = 6), labels=seq(0, 1, 0.2), col = 'red', col.axis = 'red', cex.axis=1.5, cex.main=1.5)
+mtext(side = 4, line = 3, 'Cumulative Density', col = 'red', cex=1.5)
 
 pred <- predict(fit)
 draw_ci <- function(sign, dashed=FALSE, col="Red") {
     ci_lower <- approxfun(x=pred$y, y=pred$x)((1-sign)/2) 
     ci_upper <- approxfun(x=pred$y, y=pred$x)(1-(1-sign)/2) 
     med <- approxfun(x=pred$y, y=pred$x)(0.5)
+    print(med)
     ci_bayes <- c(ci_lower, ci_upper)
     signs <- c((1-sign)/2, 1-(1-sign)/2)
     print(ci_bayes)
     print( c( abs(med-ci_bayes[1])/med, abs(med-ci_bayes[2])/med ) )
-    points(signs~ci_bayes, col=col)
+    #points(signs~ci_bayes, col=col)
     if (dashed) {
-        abline(v=ci_bayes[1], col=col, lty=2)
-        abline(v=ci_bayes[2], col=col, lty=2)        
+        abline(v=ci_bayes[1], col=col, lty=2, lwd=2)
+        abline(v=ci_bayes[2], col=col, lty=2, lwd=2)        
     }
     else {
-        abline(v=ci_bayes[1], col=col)
-        abline(v=ci_bayes[2], col=col)
+        abline(v=ci_bayes[1], col=col, lwd=2)
+        abline(v=ci_bayes[2], col=col, lwd=2)
     }
 
 }
-draw_ci(0.68)
-draw_ci(0.95, TRUE)
-draw_ci(0.99, TRUE, "Blue")
-legend("topleft",legend=c("Fit", "Percentiles", "68%", "95%", "99%"),
-       col=c("Black","Black", "Red", "Red", "Blue"), lty=c(1,0,1,2,2), pch=c(-1,20,-1,-1,-1))
+draw_ci(0.68, TRUE, "Blue")
+#draw_ci(0.95, TRUE)
+#draw_ci(0.99, TRUE, "Blue")
+
+legend(x=0.003, y=0.8,legend=c("Percentiles", "CDF", "68% C.I."),
+       col=c("Red","Red", "Blue"), lty=c(-1,1,2), pch=c(20, NA, NA), cex=1.2, lwd=c(1,2,2), bty="n")
+

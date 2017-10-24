@@ -15,6 +15,8 @@ int linecount(string file);
 
 void peakfit(string runfile) {
 
+    TH1::AddDirectory(0);
+
     std::ifstream runs(runfile);
     std::string line;
 
@@ -81,7 +83,7 @@ void peakfit(string runfile) {
         ytemp.push_back(fitpeak - 74.1);
 
         hlist.push_back(h); 
-        //f->Close();       
+        delete f;
         runCounter++;
     }
 
