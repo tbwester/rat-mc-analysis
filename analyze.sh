@@ -11,7 +11,8 @@ for line in $FILES; do
 done
 
 root -l 'peakfit.cc("filelist.txt")'
+#root -l 'analyze.cc("filelist.txt")'
 
 rm filelist.txt
 
-Rscript r/param_analyze.R
+#Rscript r/param_analyze.R
