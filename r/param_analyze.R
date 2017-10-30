@@ -67,6 +67,8 @@ colnames(rundata) <- cnames
 colnames(centraldata) <- cnames[3:length(cnames)]
 centraldata <- centraldata[-1]
 
+rundata$source.sourcewidth[which(rundata$source.sourcewidth < 0)] = 0
+
 ## compute global chisquare
 get_chisquares <- function(ref_peak=74.1, ref_run=-1) {
     ## param 6,22 not implemented
@@ -96,11 +98,11 @@ get_chisquares <- function(ref_peak=74.1, ref_run=-1) {
 gqes <- peaks / hits
 gqe_list <- c()
 prob_list <- c()
-for (j in 1:10) {
+for (j in 1:1) {
     for (i in 1:length(rundata[,1])) {
-        data_peak <- rnorm(1, mean = 60.82, sd = 0.016*60.82)
+        data_peak <- rnorm(1, mean = 60.82, sd = 0.01*60.82)
         chisquares <- get_chisquares(data_peak, i)
-        probs = exp(-0.5*chisquares)
+        probs = 1 #exp(-0.5*chisquares)
         gqe_list <- c(gqe_list, gqes[i])
         prob_list <- c(prob_list, probs)
     }
@@ -152,6 +154,6 @@ draw_ci(0.68, TRUE, "Blue")
 #draw_ci(0.95, TRUE)
 #draw_ci(0.99, TRUE, "Blue")
 
-legend(x=0.003, y=0.8,legend=c("Percentiles", "CDF", "68% C.I."),
+legend(x=0.008, y=0.6,legend=c("Percentiles", "CDF", "68% C.I."),
        col=c("Red","Red", "Blue"), lty=c(-1,1,2), pch=c(20, NA, NA), cex=1.2, lwd=c(1,2,2), bty="n")
 
